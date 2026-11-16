@@ -1,0 +1,42 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.def {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.prereqs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.mistakes {
+  background: var(--yellow-soft);
+  border: 1px solid var(--yellow);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.mistakesTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.mistakes ul {
+  margin: 0;
+  padding-left: 18px;
+}
