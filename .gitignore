@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+npm-debug.log*
+
+# secrets: never commit
+.env
+.env*.local
+
+# copied from node_modules by scripts/copy-pdf-worker.mjs
+public/pdf.worker.min.mjs
