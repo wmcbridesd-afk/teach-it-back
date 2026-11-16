@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import type { Concept, Material } from "@/lib/types";
+import type { ChatTurn, Concept, Material } from "@/lib/types";
 import UploadScreen from "@/components/UploadScreen";
 import ConceptsScreen from "@/components/ConceptsScreen";
+import TeachScreen from "@/components/TeachScreen";
 
-type Step = "upload" | "concepts" | "teach";
+type Step = "upload" | "concepts" | "teach" | "report";
 
 export default function Page() {
   const [step, setStep] = useState<Step>("upload");
   const [topic, setTopic] = useState("");
   const [materials, setMaterials] = useState<Material[]>([]);
   const [concepts, setConcepts] = useState<Concept[] | null>(null);
+  const [transcript, setTranscript] = useState<ChatTurn[]>([]);
 
   return (
     <>
@@ -31,6 +33,7 @@ export default function Page() {
             onTopicChange={setTopic}
             onMaterialsChange={(m) => {
               setConcepts(null);
+              setTranscript([]);
               setMaterials(m);
             }}
             onNext={() => setStep("concepts")}
@@ -40,14 +43,27 @@ export default function Page() {
             topic={topic}
             materials={materials}
             concepts={concepts}
-            onConcepts={setConcepts}
+            onConcepts={(c) => {
+              setConcepts(c);
+              setTranscript([]);
+            }}
             onBack={() => setStep("upload")}
             onNext={() => setStep("teach")}
           />
+        ) : step === "teach" && concepts ? (
+          <TeachScreen
+            topic={topic}
+            materials={materials}
+            concepts={concepts}
+            transcript={transcript}
+            onTranscript={setTranscript}
+            onBack={() => setStep("concepts")}
+            onFinish={() => setStep("report")}
+          />
         ) : (
           <div className="card">
-            <h2>Teaching chat coming next</h2>
-            <button className="btn" onClick={() => setStep("concepts")}>Back</button>
+            <h2>Mistake Map coming next</h2>
+            <button className="btn" onClick={() => setStep("teach")}>Back</button>
           </div>
         )}
       </main>

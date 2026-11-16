@@ -1,0 +1,91 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.msgUser {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.msgAi {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 2px;
+  padding: 0 4px;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.bubbleUser {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubbleAi {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.concepts summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.done {
+  background: var(--accent-soft);
+  border: 2px solid var(--accent);
+  text-align: center;
+}
+
+.counter {
+  margin-left: auto;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@media (max-width: 600px) {
+  .msg {
+    max-width: 95%;
+  }
+}
