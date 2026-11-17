@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatTurn, Concept, Material, Report } from "@/lib/types";
 import UploadScreen from "@/components/UploadScreen";
 import ConceptsScreen from "@/components/ConceptsScreen";
@@ -10,6 +10,7 @@ import ReportScreen from "@/components/ReportScreen";
 type Step = "upload" | "concepts" | "teach" | "report";
 
 const STORAGE_KEY = "teach-it-back-state";
+const DRAFT_KEY = "teach-it-back-paste-draft";
 const STEPS: { id: Step; label: string }[] = [
   { id: "upload", label: "Upload" },
   { id: "concepts", label: "Concepts" },
@@ -28,6 +29,19 @@ export default function Page() {
   const [focusConcepts, setFocusConcepts] = useState<string[] | null>(null);
   const [previousReport, setPreviousReport] = useState<Report | null>(null);
   const [draft, setDraft] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sessionKey, setSessionKey] = useState(0);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!confirmOpen) return;
+    cancelRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [confirmOpen]);
 
   useEffect(() => {
     try {
@@ -95,6 +109,18 @@ export default function Page() {
     setStep("upload");
   }
 
+  function newSession() {
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+    startOver();
+    setConfirmOpen(false);
+    setSessionKey((k) => k + 1);
+  }
+
   function teachAgain() {
     setPreviousReport(report);
     setFocusConcepts(null);
@@ -124,6 +150,8 @@ export default function Page() {
   const focused = !!focusConcepts && !!concepts && activeConcepts !== concepts;
 
   const effectiveStep: Step = (step === "teach" || step === "report") && !concepts ? "concepts" : step;
+  const hasWork =
+    step !== "upload" || topic.trim() !== "" || materials.length > 0 || !!concepts || transcript.length > 0 || !!report;
   const currentIdx = STEPS.findIndex((s) => s.id === effectiveStep);
 
   return (
@@ -146,9 +174,40 @@ export default function Page() {
               </span>
             ))}
           </nav>
+          {loaded && hasWork && (
+            <div className="header-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-small"
+                aria-expanded={confirmOpen}
+                aria-haspopup="dialog"
+                onClick={() => setConfirmOpen((o) => !o)}
+              >
+                New session
+              </button>
+              {confirmOpen && (
+                <div className="confirm-popover" role="dialog" aria-label="Confirm new session">
+                  <p>Start over? Your current Mistake Map will be cleared.</p>
+                  <div className="confirm-actions">
+                    <button type="button" className="btn btn-primary btn-small" onClick={newSession}>
+                      Start over
+                    </button>
+                    <button
+                      type="button"
+                      ref={cancelRef}
+                      className="btn btn-secondary btn-small"
+                      onClick={() => setConfirmOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
-      <main className="container">
+      <main className="container" key={sessionKey}>
         {!loaded ? null : effectiveStep === "upload" ? (
           <UploadScreen
             topic={topic}
