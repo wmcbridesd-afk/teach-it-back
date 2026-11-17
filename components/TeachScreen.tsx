@@ -162,6 +162,9 @@ export default function TeachScreen({
                 }
               }}
             />
+            <p className="muted small" style={{ margin: 0 }}>
+              Explain it like you would to a friend. Tip: get one thing wrong on purpose to see the Mistake Map catch it.
+            </p>
             <div className="row">
               <button
                 className="btn btn-primary"
