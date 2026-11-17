@@ -11,6 +11,9 @@ interface Props {
   concepts: Concept[];
   transcript: ChatTurn[];
   report: Report | null;
+  previousReport: Report | null;
+  focused: boolean;
+  onTeachAgainFocused: () => void;
   onReport: (r: Report) => void;
   onTeachAgain: () => void;
   onStartOver: () => void;
@@ -23,12 +26,18 @@ const LABEL: Record<Status, string> = {
   red: "Missing or wrong",
 };
 
+const RANK: Record<Status, number> = { red: 0, yellow: 1, green: 2 };
+const STATUS_WORD: Record<Status, string> = { green: "Green", yellow: "Yellow", red: "Red" };
+
 export default function ReportScreen({
   topic,
   materials,
   concepts,
   transcript,
   report,
+  previousReport,
+  focused,
+  onTeachAgainFocused,
   onReport,
   onTeachAgain,
   onStartOver,
@@ -81,15 +90,31 @@ export default function ReportScreen({
 
   const items = [...report.items].sort((a, b) => ORDER[a.status] - ORDER[b.status]);
   const count = (s: Status) => items.filter((i) => i.status === s).length;
+  const prevByConcept = new Map<string, Status>();
+  previousReport?.items.forEach((i) => prevByConcept.set(i.concept, i.status));
+  const changeOf = (item: { concept: string; status: Status }) => {
+    const before = prevByConcept.get(item.concept);
+    if (!before) return null;
+    const d = RANK[item.status] - RANK[before];
+    return { before, kind: d > 0 ? "Improved" : d < 0 ? "Slipped" : "Same" } as const;
+  };
+  const improved = items.filter((i) => changeOf(i)?.kind === "Improved").length;
+  const showTeachFocused = items.some((i) => i.status !== "green");
 
   return (
     <div className="container stack">
-      <h1>Mistake Map: {topic}</h1>
+      <h1>
+        Mistake Map: {topic}
+        {focused && <span className={styles.focusedTag}>Focused round</span>}
+      </h1>
 
       <div className={styles.summary}>
         <span className="status-pill green">{count("green")} explained well</span>
         <span className="status-pill yellow">{count("yellow")} partial</span>
         <span className="status-pill red">{count("red")} missing or wrong</span>
+        {previousReport && improved > 0 && (
+          <span className={`status-pill ${styles.improvedPill}`}>{improved} improved since last round</span>
+        )}
       </div>
 
       <div className="card">
@@ -108,6 +133,20 @@ export default function ReportScreen({
             {item.testedOnPriorExam && <span className="badge badge-exam">Tested on prior exam</span>}
             <span className={`status-pill ${item.status}`}>{LABEL[item.status]}</span>
           </div>
+
+          {(() => {
+            const ch = changeOf(item);
+            if (!ch) return null;
+            return (
+              <div className={styles.change} aria-label={`Last round ${ch.before}, now ${item.status}: ${ch.kind}`}>
+                <span className="muted small">Last round</span>
+                <span className={`status-pill ${ch.before}`}>{STATUS_WORD[ch.before]}</span>
+                <span aria-hidden="true">→</span>
+                <span className={`status-pill ${item.status}`}>{STATUS_WORD[item.status]}</span>
+                <strong className={`${styles.changeWord} ${styles[`c${ch.kind}`]}`}>{ch.kind}</strong>
+              </div>
+            );
+          })()}
 
           <div className={styles.compare}>
             <div className={styles.col}>
@@ -147,7 +186,15 @@ export default function ReportScreen({
       ))}
 
       <div className={styles.actions}>
-        <button className="btn btn-primary" onClick={onTeachAgain}>
+        {showTeachFocused && (
+          <div className={styles.focusAction}>
+            <button className="btn btn-primary" onClick={onTeachAgainFocused}>
+              Teach it again: red concepts only
+            </button>
+            <span className="muted small">Covers red and yellow concepts.</span>
+          </div>
+        )}
+        <button className={`btn ${showTeachFocused ? "btn-secondary" : "btn-primary"}`} onClick={onTeachAgain}>
           Teach it again
         </button>
         <button className="btn btn-secondary" onClick={onStartOver}>

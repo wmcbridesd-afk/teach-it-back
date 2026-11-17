@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChatTurn, Concept, Material, Report } from "@/lib/types";
 import UploadScreen from "@/components/UploadScreen";
 import ConceptsScreen from "@/components/ConceptsScreen";
@@ -25,6 +25,8 @@ export default function Page() {
   const [concepts, setConcepts] = useState<Concept[] | null>(null);
   const [transcript, setTranscript] = useState<ChatTurn[]>([]);
   const [report, setReport] = useState<Report | null>(null);
+  const [focusConcepts, setFocusConcepts] = useState<string[] | null>(null);
+  const [previousReport, setPreviousReport] = useState<Report | null>(null);
 
   useEffect(() => {
     try {
@@ -38,6 +40,8 @@ export default function Page() {
           if (Array.isArray(s.concepts)) setConcepts(s.concepts);
           if (Array.isArray(s.transcript)) setTranscript(s.transcript);
           if (s.report && typeof s.report === "object") setReport(s.report);
+          if (Array.isArray(s.focusConcepts)) setFocusConcepts(s.focusConcepts);
+          if (s.previousReport && typeof s.previousReport === "object") setPreviousReport(s.previousReport);
         }
       }
     } catch {
@@ -51,17 +55,19 @@ export default function Page() {
     try {
       sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ step, topic, materials, concepts, transcript, report }),
+        JSON.stringify({ step, topic, materials, concepts, transcript, report, focusConcepts, previousReport }),
       );
     } catch {
       /* storage full or unavailable */
     }
-  }, [loaded, step, topic, materials, concepts, transcript, report]);
+  }, [loaded, step, topic, materials, concepts, transcript, report, focusConcepts, previousReport]);
 
   function resetDownstream() {
     setConcepts(null);
     setTranscript([]);
     setReport(null);
+    setFocusConcepts(null);
+    setPreviousReport(null);
   }
 
   function changeTopic(t: string) {
@@ -87,10 +93,30 @@ export default function Page() {
   }
 
   function teachAgain() {
+    setPreviousReport(report);
+    setFocusConcepts(null);
     setTranscript([]);
     setReport(null);
     setStep("teach");
   }
+
+  function teachAgainFocused() {
+    if (!report) return;
+    const names = report.items.filter((i) => i.status !== "green").map((i) => i.concept);
+    setPreviousReport(report);
+    setFocusConcepts(names);
+    setTranscript([]);
+    setReport(null);
+    setStep("teach");
+  }
+
+  const activeConcepts = useMemo(() => {
+    if (!concepts) return null;
+    if (!focusConcepts) return concepts;
+    const f = concepts.filter((c) => focusConcepts.includes(c.name));
+    return f.length > 0 ? f : concepts;
+  }, [concepts, focusConcepts]);
+  const focused = !!focusConcepts && !!concepts && activeConcepts !== concepts;
 
   const effectiveStep: Step = (step === "teach" || step === "report") && !concepts ? "concepts" : step;
   const currentIdx = STEPS.findIndex((s) => s.id === effectiveStep);
@@ -136,25 +162,31 @@ export default function Page() {
               setConcepts(c);
               setTranscript([]);
               setReport(null);
+              setFocusConcepts(null);
+              setPreviousReport(null);
             }}
             onBack={() => setStep("upload")}
             onNext={() => setStep("teach")}
           />
-        ) : effectiveStep === "teach" && concepts ? (
+        ) : effectiveStep === "teach" && concepts && activeConcepts ? (
           <TeachScreen
             topic={topic}
             materials={materials}
-            concepts={concepts}
+            concepts={activeConcepts}
+            focused={focused}
             transcript={transcript}
             onTranscript={changeTranscript}
             onBack={() => setStep("concepts")}
             onFinish={() => setStep("report")}
           />
-        ) : concepts ? (
+        ) : concepts && activeConcepts ? (
           <ReportScreen
             topic={topic}
             materials={materials}
-            concepts={concepts}
+            concepts={activeConcepts}
+            previousReport={previousReport}
+            focused={focused}
+            onTeachAgainFocused={teachAgainFocused}
             transcript={transcript}
             report={report}
             onReport={setReport}

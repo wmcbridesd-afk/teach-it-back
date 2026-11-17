@@ -89,3 +89,15 @@
     max-width: 95%;
   }
 }
+
+.focusBanner {
+  background: var(--yellow-soft);
+  border: 1px solid #f0dc9b;
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 15px;
+}
+.focusBanner .chips {
+  margin-top: 8px;
+}

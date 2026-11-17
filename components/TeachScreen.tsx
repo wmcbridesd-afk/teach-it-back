@@ -10,6 +10,7 @@ interface Props {
   topic: string;
   materials: Material[];
   concepts: Concept[];
+  focused: boolean;
   transcript: ChatTurn[];
   onTranscript: (t: ChatTurn[]) => void;
   onBack: () => void;
@@ -20,6 +21,7 @@ export default function TeachScreen({
   topic,
   materials,
   concepts,
+  focused,
   transcript,
   onTranscript,
   onBack,
@@ -74,6 +76,19 @@ export default function TeachScreen({
             wrong.
           </p>
         </div>
+
+        {focused && (
+          <div className={styles.focusBanner}>
+            <strong>Focused round: just the concepts you missed last time</strong>
+            <div className={styles.chips}>
+              {concepts.map((c, i) => (
+                <span className="chip" key={`${c.name}-${i}`}>
+                  {c.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <details className={`card ${styles.concepts}`}>
           <summary>Concepts to cover ({concepts.length})</summary>
