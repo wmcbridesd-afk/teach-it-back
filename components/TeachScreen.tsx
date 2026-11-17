@@ -35,6 +35,7 @@ export default function TeachScreen({
   const setInput = onDraftChange;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failedMsg, setFailedMsg] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const aiTurns = transcript.filter((t) => t.role === "assistant").length;
@@ -45,13 +46,14 @@ export default function TeachScreen({
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [transcript.length, loading, done]);
 
-  async function send() {
-    const content = input.trim();
+  async function send(retryContent?: string) {
+    const content = (retryContent ?? input).trim();
     if (!content || loading || done) return;
     const prev = transcript;
     const next: ChatTurn[] = [...prev, { role: "user", content }];
     onTranscript(next);
     setError(null);
+    setFailedMsg(null);
     setLoading(true);
     try {
       const res = await postJSON<{ reply: string }>("/api/student", {
@@ -61,9 +63,10 @@ export default function TeachScreen({
         transcript: next,
       });
       onTranscript([...next, { role: "assistant", content: res.reply }]);
-      setInput("");
+      if (input.trim() === content) setInput("");
     } catch (err) {
       onTranscript(prev);
+      setFailedMsg(content);
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
@@ -137,7 +140,20 @@ export default function TeachScreen({
           <div ref={endRef} />
         </div>
 
-        {error && <div className="error-box">{error}</div>}
+        {error && (
+          <div className={`error-box ${styles.errorRow}`}>
+            <span>{error}</span>
+            {failedMsg && !done && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => void send(failedMsg)}
+                disabled={loading}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
 
         {done ? (
           <div className={`card stack ${styles.done}`}>

@@ -91,7 +91,7 @@ export default function ReportScreen({
             <div className="error-box">{error}</div>
             <div>
               <button className="btn btn-primary" onClick={() => void fetchReport()}>
-                Try again
+                Retry
               </button>
             </div>
           </>
