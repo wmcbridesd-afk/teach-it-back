@@ -49,10 +49,10 @@ p:last-child { margin-bottom: 0; }
 .site-header .brand strong { font-weight: 800; }
 
 .steps { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; color: var(--muted); }
-.steps span { padding: 4px 10px; border-radius: 999px; }
-.steps .active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+.steps .step { padding: 4px 12px; border-radius: 999px; white-space: nowrap; }
+.steps .active { background: #2E4A87; color: #fff; font-weight: 700; }
 .steps .done { color: var(--text); }
-.steps .sep { padding: 0; color: var(--border); }
+.steps .future { color: var(--muted); opacity: 0.8; }
 
 main.container { padding-bottom: 48px; }
 

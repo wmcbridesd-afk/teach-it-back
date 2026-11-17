@@ -12,6 +12,8 @@ interface Props {
   concepts: Concept[];
   focused: boolean;
   transcript: ChatTurn[];
+  draft: string;
+  onDraftChange: (d: string) => void;
   onTranscript: (t: ChatTurn[]) => void;
   onBack: () => void;
   onFinish: () => void;
@@ -23,11 +25,14 @@ export default function TeachScreen({
   concepts,
   focused,
   transcript,
+  draft,
+  onDraftChange,
   onTranscript,
   onBack,
   onFinish,
 }: Props) {
-  const [input, setInput] = useState("");
+  const input = draft;
+  const setInput = onDraftChange;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -46,7 +51,6 @@ export default function TeachScreen({
     const prev = transcript;
     const next: ChatTurn[] = [...prev, { role: "user", content }];
     onTranscript(next);
-    setInput("");
     setError(null);
     setLoading(true);
     try {
@@ -57,9 +61,9 @@ export default function TeachScreen({
         transcript: next,
       });
       onTranscript([...next, { role: "assistant", content: res.reply }]);
+      setInput("");
     } catch (err) {
       onTranscript(prev);
-      setInput(content);
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);

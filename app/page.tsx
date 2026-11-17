@@ -27,6 +27,7 @@ export default function Page() {
   const [report, setReport] = useState<Report | null>(null);
   const [focusConcepts, setFocusConcepts] = useState<string[] | null>(null);
   const [previousReport, setPreviousReport] = useState<Report | null>(null);
+  const [draft, setDraft] = useState("");
 
   useEffect(() => {
     try {
@@ -40,6 +41,7 @@ export default function Page() {
           if (Array.isArray(s.concepts)) setConcepts(s.concepts);
           if (Array.isArray(s.transcript)) setTranscript(s.transcript);
           if (s.report && typeof s.report === "object") setReport(s.report);
+          if (typeof s.draft === "string") setDraft(s.draft);
           if (Array.isArray(s.focusConcepts)) setFocusConcepts(s.focusConcepts);
           if (s.previousReport && typeof s.previousReport === "object") setPreviousReport(s.previousReport);
         }
@@ -55,12 +57,12 @@ export default function Page() {
     try {
       sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ step, topic, materials, concepts, transcript, report, focusConcepts, previousReport }),
+        JSON.stringify({ step, topic, materials, concepts, transcript, report, focusConcepts, previousReport, draft }),
       );
     } catch {
       /* storage full or unavailable */
     }
-  }, [loaded, step, topic, materials, concepts, transcript, report, focusConcepts, previousReport]);
+  }, [loaded, step, topic, materials, concepts, transcript, report, focusConcepts, previousReport, draft]);
 
   function resetDownstream() {
     setConcepts(null);
@@ -68,6 +70,7 @@ export default function Page() {
     setReport(null);
     setFocusConcepts(null);
     setPreviousReport(null);
+    setDraft("");
   }
 
   function changeTopic(t: string) {
@@ -95,6 +98,7 @@ export default function Page() {
   function teachAgain() {
     setPreviousReport(report);
     setFocusConcepts(null);
+    setDraft("");
     setTranscript([]);
     setReport(null);
     setStep("teach");
@@ -105,6 +109,7 @@ export default function Page() {
     const names = report.items.filter((i) => i.status !== "green").map((i) => i.concept);
     setPreviousReport(report);
     setFocusConcepts(names);
+    setDraft("");
     setTranscript([]);
     setReport(null);
     setStep("teach");
@@ -131,14 +136,13 @@ export default function Page() {
           </div>
           <nav className="steps" aria-label="Progress">
             {STEPS.map((s, i) => (
-              <span key={s.id} style={{ display: "contents" }}>
-                {i > 0 && <span className="sep">·</span>}
-                <span
-                  className={i === currentIdx ? "active" : i < currentIdx ? "done" : ""}
-                  aria-current={i === currentIdx ? "step" : undefined}
-                >
-                  {s.label}
-                </span>
+              <span
+                key={s.id}
+                className={`step ${i === currentIdx ? "active" : i < currentIdx ? "done" : "future"}`}
+                aria-current={i === currentIdx ? "step" : undefined}
+              >
+                {i < currentIdx && <span aria-hidden="true">✓ </span>}
+                {s.label}
               </span>
             ))}
           </nav>
@@ -164,6 +168,7 @@ export default function Page() {
               setReport(null);
               setFocusConcepts(null);
               setPreviousReport(null);
+              setDraft("");
             }}
             onBack={() => setStep("upload")}
             onNext={() => setStep("teach")}
@@ -175,6 +180,8 @@ export default function Page() {
             concepts={activeConcepts}
             focused={focused}
             transcript={transcript}
+            draft={draft}
+            onDraftChange={setDraft}
             onTranscript={changeTranscript}
             onBack={() => setStep("concepts")}
             onFinish={() => setStep("report")}
