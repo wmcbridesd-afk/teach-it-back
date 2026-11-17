@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FILE_TAGS, MAX_TOTAL_CHARS, type FileTag, type Material } from "@/lib/types";
 import { extractText } from "@/lib/extract";
 import { SAMPLE_TOPIC, SAMPLE_MATERIALS } from "@/lib/sample";
+import styles from "./UploadScreen.module.css";
+
+const DRAFT_KEY = "teach-it-back-paste-draft";
+
+const STEPS = ["Upload your material", "Teach it to an AI student", "See your Mistake Map"];
 
 interface Props {
   topic: string;
@@ -36,6 +41,30 @@ export default function UploadScreen({ topic, materials, onTopicChange, onMateri
   const [pastedTag, setPastedTag] = useState<FileTag>("Notes");
   const [pasteCount, setPasteCount] = useState(1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const draftLoaded = useRef(false);
+
+  // Restore the paste draft (text + tag) so Back never loses it.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as { text?: unknown; tag?: unknown };
+        if (typeof d.text === "string") setPasted(d.text);
+        if (typeof d.tag === "string" && (FILE_TAGS as readonly string[]).includes(d.tag)) {
+          setPastedTag(d.tag as FileTag);
+        }
+      }
+    } catch {}
+    draftLoaded.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoaded.current) return;
+    try {
+      if (pasted) sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ text: pasted, tag: pastedTag }));
+      else sessionStorage.removeItem(DRAFT_KEY);
+    } catch {}
+  }, [pasted, pastedTag]);
   // Latest materials, so concurrent async additions don't clobber each other.
   const latest = useRef<Material[]>(materials);
   latest.current = materials;
@@ -107,6 +136,15 @@ export default function UploadScreen({ topic, materials, onTopicChange, onMateri
 
   return (
     <div className="stack">
+      <ol className={styles.steps} aria-label="How it works">
+        {STEPS.map((label, i) => (
+          <li key={label} className={`${styles.step}${i === 0 ? ` ${styles.active}` : ""}`}>
+            <span className={styles.num}>{i + 1}</span>
+            <span>{label}</span>
+          </li>
+        ))}
+      </ol>
+
       <div className="card stack">
         <div>
           <h1 className="section-title">Upload your course material</h1>
