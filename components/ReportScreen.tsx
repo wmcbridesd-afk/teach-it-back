@@ -26,6 +26,13 @@ const LABEL: Record<Status, string> = {
   red: "Missing or wrong",
 };
 
+const PROGRESS_MESSAGES = [
+  "Comparing your explanation to the material…",
+  "Checking past exams and graded work…",
+  "Tracing root causes…",
+  "Writing your fixes…",
+];
+
 const RANK: Record<Status, number> = { red: 0, yellow: 1, green: 2 };
 const STATUS_WORD: Record<Status, string> = { green: "Green", yellow: "Yellow", red: "Red" };
 
@@ -44,6 +51,15 @@ export default function ReportScreen({
 }: Props) {
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
+  const [msgIdx, setMsgIdx] = useState(0);
+  const waiting = !report && !error;
+
+  useEffect(() => {
+    if (!waiting) return;
+    setMsgIdx(0);
+    const id = setInterval(() => setMsgIdx((i) => (i + 1) % PROGRESS_MESSAGES.length), 3000);
+    return () => clearInterval(id);
+  }, [waiting]);
 
   const fetchReport = useCallback(async () => {
     setError(null);
@@ -81,7 +97,10 @@ export default function ReportScreen({
           </>
         ) : (
           <div className="loading">
-            <span className="spinner" /> Building your Mistake Map…
+            <span className="spinner" />
+            <span key={msgIdx} className={styles.progressMsg} role="status">
+              {PROGRESS_MESSAGES[msgIdx]}
+            </span>
           </div>
         )}
       </div>

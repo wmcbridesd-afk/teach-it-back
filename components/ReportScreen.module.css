@@ -142,3 +142,15 @@
   align-items: flex-start;
   gap: 4px;
 }
+
+.progressMsg {
+  animation: msgFade 0.5s ease;
+}
+@keyframes msgFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
