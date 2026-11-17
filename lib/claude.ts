@@ -5,6 +5,9 @@ import { NextResponse } from "next/server";
 import * as z from "zod/v4";
 import { FILE_TAGS, MAX_TOTAL_CHARS, type Material } from "@/lib/types";
 
+/** Keep in sync with BUSY_MESSAGE in lib/api.ts (client). */
+export const BUSY_MESSAGE = "Lots of people are testing right now. Try again in a minute.";
+
 export const MODEL = "claude-sonnet-5-5";
 
 const BETAS = ["server-side-fallback-2026-07-01"];
@@ -14,6 +17,7 @@ export class FriendlyError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
   }
@@ -26,6 +30,7 @@ function getClient(): Anthropic {
     throw new FriendlyError(
       500,
       "The server is missing its Anthropic API key. Add ANTHROPIC_API_KEY to .env.local and restart the dev server.",
+      "config",
     );
   }
   if (!client) client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -112,7 +117,7 @@ function checkStopReason(stop: string | null | undefined): void {
     );
   }
   if (stop === "max_tokens") {
-    throw new FriendlyError(502, "Claude's answer got cut off. Please try again (shorter materials may help).");
+    throw new FriendlyError(503, BUSY_MESSAGE);
   }
 }
 
@@ -133,7 +138,7 @@ export async function callStructured<S extends z.ZodType>(
   });
   checkStopReason(response.stop_reason);
   if (response.parsed_output == null) {
-    throw new FriendlyError(502, "Claude's answer came back in an unexpected format. Please try again.");
+    throw new FriendlyError(503, BUSY_MESSAGE);
   }
   return response.parsed_output as z.infer<S>;
 }
@@ -154,44 +159,36 @@ export async function callText(system: string, messages: Msg[]): Promise<string>
     .map((b) => (b.type === "text" ? b.text : ""))
     .join("")
     .trim();
-  if (!text) throw new FriendlyError(502, "Claude didn't say anything that time. Please try again.");
+  if (!text) throw new FriendlyError(503, BUSY_MESSAGE);
   return text;
 }
 
 // ---------- error mapping ----------
 
-export function errorResponse(err: unknown): NextResponse<{ error: string }> {
+export function errorResponse(err: unknown): NextResponse<{ error: string; code?: string }> {
   if (err instanceof FriendlyError) {
     if (err.status >= 500) console.error(err.message);
-    return NextResponse.json({ error: err.message }, { status: err.status });
+    const code = err.code ? { code: err.code } : {};
+    return NextResponse.json({ error: err.message, ...code }, { status: err.status });
   }
   console.error("Claude request failed:", err);
-  const json = (error: string, status: number) => NextResponse.json({ error }, { status });
+  const json = (error: string, status: number, code?: string) =>
+    NextResponse.json(code ? { error, code } : { error }, { status });
 
   if (err instanceof Anthropic.AuthenticationError) {
-    return json("The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in .env.local and restart the dev server.", 500);
+    return json(
+      "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY in .env.local and restart the dev server.",
+      500,
+      "config",
+    );
   }
-  if (err instanceof Anthropic.RateLimitError) {
-    return json("Claude is busy right now — wait a moment and try again.", 429);
-  }
+  if (err instanceof Anthropic.RateLimitError) return json(BUSY_MESSAGE, 429);
   if (err instanceof Anthropic.BadRequestError) {
     return json(
       "Claude couldn't process that request — your materials may be too long. Try removing a file or two and try again.",
       400,
     );
   }
-  if (err instanceof Anthropic.APIConnectionError) {
-    return json("Couldn't reach Claude. Check your internet connection and try again.", 502);
-  }
-  if (err instanceof Anthropic.APIError) {
-    const status = typeof err.status === "number" ? err.status : 502;
-    if (status === 529 || status >= 500) {
-      return json("Claude is having trouble right now. Please try again in a moment.", 502);
-    }
-    return json(`Something went wrong talking to Claude (error ${status}). Please try again.`, 502);
-  }
-  if (err instanceof Anthropic.AnthropicError && err.message.startsWith("Failed to parse structured output")) {
-    return json("Claude's answer came back incomplete. Please try again.", 502);
-  }
-  return json("Something went wrong on the server. Please try again.", 500);
+  // Connection errors, overloaded (529), other API errors, parse failures and unknown errors.
+  return json(BUSY_MESSAGE, 503);
 }

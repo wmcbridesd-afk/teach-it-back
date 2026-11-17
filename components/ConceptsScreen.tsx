@@ -79,7 +79,7 @@ export default function ConceptsScreen({
             <div>{error}</div>
             <div>
               <button className="btn btn-secondary" onClick={() => void load()}>
-                Try again
+                Retry
               </button>
             </div>
           </div>
